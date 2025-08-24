@@ -1,0 +1,66 @@
+name: Build Windows Executable
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+        
+    - name: Build executable
+      run: |
+        python build_advanced_exe.py
+        
+    - name: Upload executable as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: DatasetBuilderAdvanced-Windows
+        path: dist/DatasetBuilderAdvanced.exe
+        retention-days: 30
+        
+    - name: Create release
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: dist/DatasetBuilderAdvanced.exe
+        tag_name: v1.0.0
+        name: Dataset Builder v1.0.0
+        body: |
+          ## Dataset Builder for Logistics Routes
+          
+          Автоматический сбор данных из Excel-файлов с маршрутами логистики.
+          
+          ### Что нового:
+          - ✅ Обработка Excel файлов (.xlsx, .xlsm)
+          - ✅ Извлечение данных из листов "Pallet Order" и "Collection Plan"
+          - ✅ Объединение заказов и доставок
+          - ✅ Сохранение в CSV и Parquet форматах
+          - ✅ Поддержка накопления данных
+          - ✅ Подробное логирование и статистика
+          
+          ### Использование:
+          1. Скачайте `DatasetBuilderAdvanced.exe`
+          2. Запустите файл
+          3. Введите путь к папке с Excel файлами
+          4. Получите результат в CSV и Parquet форматах
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
